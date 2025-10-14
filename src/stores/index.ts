@@ -1,11 +1,22 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
+import { ref } from 'vue'
+
+// 定义诗词类型
+interface Poem {
+  id: number
+  title: string
+  author: string
+  dynasty: string
+  content: string
+  tags?: string[]
+}
 
 // 用户状态管理
 export const useUserStore = defineStore('user', {
   state: () => ({
-    user: null,
+    user: null as any,
     isAuthenticated: false,
-    favorites: [],
+    favorites: [] as string[],
     learningProgress: 0
   }),
   
@@ -40,13 +51,19 @@ export const useUserStore = defineStore('user', {
 // 诗词数据状态管理
 export const usePoemStore = defineStore('poem', {
   state: () => ({
-    poems: [],
-    selectedPoem: null,
-    searchResults: [],
+    poems: [] as Poem[],
+    currentPoem: null as Poem | null,
+    searchResults: [] as Poem[],
     loading: false
   }),
   
   actions: {
+    setSearchResults(results: Poem[]) {
+      this.searchResults = results;
+    },
+    getPoemById(id: number): Poem | undefined {
+      return this.poems.find(poem => poem.id === id);
+    },
     async fetchPoems() {
       this.loading = true
       try {
@@ -71,8 +88,8 @@ export const usePoemStore = defineStore('poem', {
       }
     },
     
-    selectPoem(poem: any) {
-      this.selectedPoem = poem
+    selectPoem(poem: Poem) {
+      this.currentPoem = poem
     },
     
     async searchPoems(query: string) {

@@ -133,9 +133,20 @@
 import { ref, onMounted } from 'vue'
 import { Search, ArrowLeft, Star } from '@element-plus/icons-vue'
 
+// 定义诗词类型接口
+interface Poem {
+  id: number
+  title: string
+  author: string
+  dynasty: string
+  content: string
+  tags: string[]
+}
+
+
 // 响应式数据
 const searchQuery = ref('')
-const selectedPoem = ref(null)
+const selectedPoem = ref<Poem | null>(null)
 const userMessage = ref('')
 const isFavorite = ref(false)
 
@@ -153,7 +164,7 @@ const chatMessages = ref([
 ])
 
 // 示例推荐诗词数据
-const recommendedPoems = ref([
+const recommendedPoems = ref<Poem[]>([
   {
     id: 1,
     title: '静夜思',
@@ -177,7 +188,7 @@ const handleSearch = () => {
   console.log('搜索:', searchQuery.value)
 }
 
-const selectPoem = (poem: any) => {
+const selectPoem = (poem: Poem) => {
   selectedPoem.value = poem
 }
 

@@ -39,9 +39,18 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Star, Share } from '@element-plus/icons-vue'
 
+// 定义诗词类型接口
+interface Poem {
+  id: string
+  title: string
+  author: string
+  dynasty: string
+  content: string
+}
+
 const route = useRoute()
 const router = useRouter()
-const poem = ref(null)
+const poem = ref<Poem | null>(null)
 
 const goBack = () => {
   router.go(-1)
@@ -51,7 +60,7 @@ onMounted(() => {
   const poemId = route.params.id
   // 模拟数据
   poem.value = {
-    id: poemId,
+    id: String(poemId),
     title: '静夜思',
     author: '李白',
     dynasty: '唐',
