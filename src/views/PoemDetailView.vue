@@ -1,0 +1,121 @@
+<template>
+  <div class="poem-detail-view">
+    <div class="poem-container">
+      <div class="poem-header">
+        <el-button @click="goBack" type="text" class="back-btn">
+          <el-icon><ArrowLeft /></el-icon>
+          返回
+        </el-button>
+      </div>
+      
+      <div class="poem-content chinese-style" v-if="poem">
+        <h1 class="poem-title">{{ poem.title }}</h1>
+        <p class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</p>
+        <div class="poem-text">
+          {{ poem.content }}
+        </div>
+        
+        <div class="poem-actions">
+          <el-button type="primary">
+            <el-icon><Star /></el-icon>
+            收藏
+          </el-button>
+          <el-button>
+            <el-icon><Share /></el-icon>
+            分享
+          </el-button>
+        </div>
+      </div>
+      
+      <div v-else class="loading">
+        <el-skeleton :rows="5" animated />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft, Star, Share } from '@element-plus/icons-vue'
+
+const route = useRoute()
+const router = useRouter()
+const poem = ref(null)
+
+const goBack = () => {
+  router.go(-1)
+}
+
+onMounted(() => {
+  const poemId = route.params.id
+  // 模拟数据
+  poem.value = {
+    id: poemId,
+    title: '静夜思',
+    author: '李白',
+    dynasty: '唐',
+    content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。'
+  }
+})
+</script>
+
+<style scoped>
+.poem-detail-view {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 2rem;
+}
+
+.poem-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.back-btn {
+  margin-bottom: 2rem;
+  color: #667eea;
+}
+
+.poem-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.poem-title {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-family: 'KaiTi', '楷体', serif;
+}
+
+.poem-author {
+  color: #7f8c8d;
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.poem-text {
+  font-family: 'KaiTi', '楷体', serif;
+  font-size: 1.5rem;
+  line-height: 2;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+}
+
+.poem-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.loading {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+</style>
