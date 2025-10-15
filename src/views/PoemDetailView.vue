@@ -38,34 +38,45 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Star, Share } from '@element-plus/icons-vue'
-
-// 定义诗词类型接口
-interface Poem {
-  id: string
-  title: string
-  author: string
-  dynasty: string
-  content: string
-}
+import { getPoemDetail, recordUserActivity } from '../utils/api'
+import type { Poem } from '../types/poem'
 
 const route = useRoute()
 const router = useRouter()
 const poem = ref<Poem | null>(null)
+const loading = ref(true)
 
 const goBack = () => {
   router.go(-1)
 }
 
-onMounted(() => {
-  const poemId = route.params.id
-  // 模拟数据
-  poem.value = {
-    id: String(poemId),
-    title: '静夜思',
-    author: '李白',
-    dynasty: '唐',
-    content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。'
+const loadPoemDetail = async () => {
+  try {
+    loading.value = true
+    const poemId = route.params.id as string
+    const result = await getPoemDetail(poemId)
+    
+    if (result.success && result.data) {
+      poem.value = result.data
+      
+      // 记录用户阅读行为
+      await recordUserActivity({
+        activity_type: 'read',
+        target_type: 'poem',
+        target_id: poemId,
+        duration: 30, // 假设阅读时长为30秒
+        engagement_score: 80
+      })
+    }
+  } catch (error) {
+    console.error('加载诗词详情失败:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(() => {
+  loadPoemDetail()
 })
 </script>
 

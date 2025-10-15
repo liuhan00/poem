@@ -1,17 +1,24 @@
 {
   "name": "poem-appreciation-platform",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "基于Vue.js + Supabase的智能诗词鉴赏平台",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "build-only": "vite build",
     "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "build-only": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:dev": "playwright test --ui",
     "test:unit": "vitest",
-    "type-check": "vue-tsc --build --force"
+    "type-check": "vue-tsc --build --force",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link",
+    "supabase:deploy": "supabase db push",
+    "supabase:functions:deploy": "supabase functions deploy --all",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
@@ -37,6 +44,16 @@
     "vitest": "^1.0.4",
     "vue-tsc": "^1.8.25",
     "unplugin-auto-import": "^0.17.2",
-    "unplugin-vue-components": "^0.25.2"
-  }
+    "unplugin-vue-components": "^0.25.2",
+    "@supabase/cli": "^1.120.0"
+  },
+  "keywords": [
+    "vue",
+    "supabase",
+    "poetry",
+    "ai",
+    "chinese-culture"
+  ],
+  "author": "诗词鉴赏平台团队",
+  "license": "MIT"
 }

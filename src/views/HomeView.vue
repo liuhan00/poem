@@ -86,22 +86,27 @@
       <!-- 热门诗词推荐 -->
       <section class="popular-poems">
         <h3 class="section-title">热门诗词</h3>
-        <el-row :gutter="16">
-          <el-col :xs="24" :sm="12" :md="8" v-for="poem in popularPoems" :key="poem.id">
-            <el-card class="poem-card chinese-style" shadow="hover" @click="viewPoem(poem.id)">
-              <div class="poem-content">
-                <h4 class="poem-title">{{ poem.title }}</h4>
-                <p class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</p>
-                <div class="poem-preview">
-                  {{ poem.preview }}
+        <div v-if="loading" class="loading-section">
+          <el-skeleton :rows="3" animated />
+        </div>
+        <div v-else>
+          <el-row :gutter="16">
+            <el-col :xs="24" :sm="12" :md="8" v-for="poem in popularPoems" :key="poem.id">
+              <el-card class="poem-card chinese-style" shadow="hover" @click="viewPoem(poem.id)">
+                <div class="poem-content">
+                  <h4 class="poem-title">{{ poem.title }}</h4>
+                  <p class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</p>
+                  <div class="poem-preview">
+                    {{ poem.content.split('。')[0] }}。
+                  </div>
+                  <div class="poem-tags">
+                    <el-tag v-for="tag in poem.tags" :key="tag" size="small">{{ tag }}</el-tag>
+                  </div>
                 </div>
-                <div class="poem-tags">
-                  <el-tag v-for="tag in poem.tags" :key="tag" size="small">{{ tag }}</el-tag>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+              </el-card>
+            </el-col>
+          </el-row>
+        </div>
       </section>
     </el-main>
 
@@ -123,33 +128,12 @@ import { Search, Refresh, Cpu, Connection, EditPen, ChatDotRound } from '@elemen
 const router = useRouter()
 const activeIndex = ref('/')
 
-// 示例数据
-const popularPoems = ref([
-  {
-    id: 1,
-    title: '静夜思',
-    author: '李白',
-    dynasty: '唐',
-    preview: '床前明月光，疑是地上霜...',
-    tags: ['思乡', '月夜', '经典']
-  },
-  {
-    id: 2,
-    title: '春晓',
-    author: '孟浩然',
-    dynasty: '唐',
-    preview: '春眠不觉晓，处处闻啼鸟...',
-    tags: ['春天', '田园', '自然']
-  },
-  {
-    id: 3,
-    title: '登鹳雀楼',
-    author: '王之涣',
-    dynasty: '唐',
-    preview: '白日依山尽，黄河入海流...',
-    tags: ['登高', '哲理', '壮阔']
-  }
-])
+import { getPopularPoems } from '../utils/api'
+import type { Poem } from '../types/poem'
+
+// 响应式数据
+const popularPoems = ref<Poem[]>([])
+const loading = ref(true)
 
 const handleSelect = (key: string) => {
   router.push(key)
@@ -159,8 +143,10 @@ const startExploring = () => {
   router.push('/appreciation')
 }
 
-const viewRandomPoem = () => {
-  // 随机选择一首诗词
+const viewRandomPoem = async () => {
+  if (popularPoems.value.length === 0) {
+    await loadPopularPoems()
+  }
   const randomIndex = Math.floor(Math.random() * popularPoems.value.length)
   const randomPoem = popularPoems.value[randomIndex]
   router.push(`/poem/${randomPoem.id}`)
@@ -170,9 +156,22 @@ const viewPoem = (id: number) => {
   router.push(`/poem/${id}`)
 }
 
+const loadPopularPoems = async () => {
+  try {
+    loading.value = true
+    const result = await getPopularPoems(6)
+    if (result.success && result.data) {
+      popularPoems.value = result.data
+    }
+  } catch (error) {
+    console.error('加载热门诗词失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
-  // 页面加载时的初始化逻辑
-  console.log('诗词鉴赏平台首页已加载')
+  loadPopularPoems()
 })
 </script>
 
