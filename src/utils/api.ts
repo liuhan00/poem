@@ -188,6 +188,172 @@ export async function getPopularPoems(limit: number = 10): Promise<ApiResponse<P
   }
 }
 
+// 获取所有诗词
+export async function getAllPoems(): Promise<Poem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('poems')
+      .select(`
+        *,
+        authors!inner(name)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data.map(poem => ({
+      ...poem,
+      author: poem.authors.name
+    }))
+  } catch (error) {
+    console.error('获取所有诗词失败:', error)
+    return []
+  }
+}
+
+// 创建诗词
+export async function createPoem(poemData: Omit<Poem, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Poem>> {
+  try {
+    // 首先检查作者是否存在，不存在则创建
+    let authorId: string
+    const { data: existingAuthor, error: authorError } = await supabase
+      .from('authors')
+      .select('id')
+      .eq('name', poemData.author)
+      .single()
+
+    if (authorError || !existingAuthor) {
+      // 创建新作者
+      const { data: newAuthor, error: createAuthorError } = await supabase
+        .from('authors')
+        .insert({ name: poemData.author })
+        .select()
+        .single()
+
+      if (createAuthorError) throw createAuthorError
+      authorId = newAuthor.id
+    } else {
+      authorId = existingAuthor.id
+    }
+
+    // 创建诗词
+    const { data, error } = await supabase
+      .from('poems')
+      .insert({
+        title: poemData.title,
+        author_id: authorId,
+        dynasty: poemData.dynasty,
+        content: poemData.content,
+        tags: poemData.tags,
+        annotation: poemData.annotation,
+        translation: poemData.translation
+      })
+      .select(`
+        *,
+        authors!inner(name)
+      `)
+      .single()
+
+    if (error) throw error
+
+    const poem = {
+      ...data,
+      author: data.authors.name
+    }
+
+    return { success: true, data: poem }
+  } catch (error) {
+    console.error('创建诗词失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+// 更新诗词
+export async function updatePoem(poemId: string, poemData: Partial<Poem>): Promise<ApiResponse<Poem>> {
+  try {
+    // 如果更新了作者，需要处理作者信息
+    let updateData: any = {
+      title: poemData.title,
+      dynasty: poemData.dynasty,
+      content: poemData.content,
+      tags: poemData.tags,
+      annotation: poemData.annotation,
+      translation: poemData.translation
+    }
+
+    if (poemData.author) {
+      // 检查作者是否存在
+      const { data: existingAuthor, error: authorError } = await supabase
+        .from('authors')
+        .select('id')
+        .eq('name', poemData.author)
+        .single()
+
+      if (authorError || !existingAuthor) {
+        // 创建新作者
+        const { data: newAuthor, error: createAuthorError } = await supabase
+          .from('authors')
+          .insert({ name: poemData.author })
+          .select()
+          .single()
+
+        if (createAuthorError) throw createAuthorError
+        updateData.author_id = newAuthor.id
+      } else {
+        updateData.author_id = existingAuthor.id
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('poems')
+      .update(updateData)
+      .eq('id', poemId)
+      .select(`
+        *,
+        authors!inner(name)
+      `)
+      .single()
+
+    if (error) throw error
+
+    const poem = {
+      ...data,
+      author: data.authors.name
+    }
+
+    return { success: true, data: poem }
+  } catch (error) {
+    console.error('更新诗词失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+// 删除诗词
+export async function deletePoem(poemId: string): Promise<ApiResponse<void>> {
+  try {
+    const { error } = await supabase
+      .from('poems')
+      .delete()
+      .eq('id', poemId)
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error('删除诗词失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
 export default {
   searchPoems,
   sendAIMessage,
