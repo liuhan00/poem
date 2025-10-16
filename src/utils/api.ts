@@ -162,7 +162,8 @@ export async function getPoemDetail(poem_id: string): Promise<ApiResponse<Poem>>
 // 获取热门诗词
 export async function getPopularPoems(limit: number = 10): Promise<ApiResponse<Poem[]>> {
   try {
-    const { data, error } = await supabase
+    // 首先尝试按热度排序获取
+    const { data: popularData, error: popularError } = await supabase
       .from('poems')
       .select(`
         *,
@@ -171,9 +172,30 @@ export async function getPopularPoems(limit: number = 10): Promise<ApiResponse<P
       .order('popularity', { ascending: false })
       .limit(limit)
 
-    if (error) throw error
+    if (popularError) throw popularError
 
-    const poems = data.map(poem => ({
+    // 如果按热度排序没有数据或数据不足，则按创建时间获取
+    let finalData = popularData
+    if (!popularData || popularData.length === 0) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('poems')
+        .select(`
+          *,
+          authors!inner(name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (fallbackError) throw fallbackError
+      finalData = fallbackData
+    }
+
+    // 如果仍然没有数据，返回空数组而不是错误
+    if (!finalData) {
+      return { success: true, data: [] }
+    }
+
+    const poems = finalData.map(poem => ({
       ...poem,
       author: poem.authors.name
     }))
@@ -181,9 +203,10 @@ export async function getPopularPoems(limit: number = 10): Promise<ApiResponse<P
     return { success: true, data: poems }
   } catch (error) {
     console.error('获取热门诗词失败:', error)
+    // 发生错误时返回空数组而不是失败状态
     return {
-      success: false,
-      error: error instanceof Error ? error.message : '未知错误'
+      success: true,
+      data: []
     }
   }
 }

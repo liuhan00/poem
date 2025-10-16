@@ -89,7 +89,7 @@
         <div v-if="loading" class="loading-section">
           <el-skeleton :rows="3" animated />
         </div>
-        <div v-else>
+        <div v-else-if="popularPoems.length > 0">
           <el-row :gutter="16">
             <el-col :xs="24" :sm="12" :md="8" v-for="poem in popularPoems" :key="poem.id">
               <el-card class="poem-card chinese-style" shadow="hover" @click="viewPoem(poem.id)">
@@ -106,6 +106,11 @@
               </el-card>
             </el-col>
           </el-row>
+        </div>
+        <div v-else class="empty-section">
+          <el-empty description="暂无热门诗词数据" :image-size="100">
+            <el-button type="primary" @click="loadPopularPoems">重新加载</el-button>
+          </el-empty>
         </div>
       </section>
     </el-main>
@@ -162,9 +167,12 @@ const loadPopularPoems = async () => {
     const result = await getPopularPoems(6)
     if (result.success && result.data) {
       popularPoems.value = result.data
+    } else {
+      popularPoems.value = []
     }
   } catch (error) {
     console.error('加载热门诗词失败:', error)
+    popularPoems.value = []
   } finally {
     loading.value = false
   }
@@ -329,6 +337,11 @@ onMounted(() => {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.empty-section {
+  text-align: center;
+  padding: 2rem 0;
 }
 
 .footer {
