@@ -18,6 +18,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
+
+
 // 数据库表类型定义
 export interface Database {
   public: {
