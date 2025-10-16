@@ -354,4 +354,5 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 8px;
 }
+
 </style>
