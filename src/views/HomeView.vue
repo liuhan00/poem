@@ -163,17 +163,23 @@ const viewPoem = (id: string) => {
 
 const loadPopularPoems = async () => {
   try {
+    console.log('开始加载热门诗词...')
     loading.value = true
     const result = await getPopularPoems(6)
+    console.log('API调用结果:', result)
+    
     if (result.success && result.data) {
+      console.log(`获取到 ${result.data.length} 首诗词`)
       popularPoems.value = result.data
     } else {
+      console.log('API调用成功但无数据')
       popularPoems.value = []
     }
   } catch (error) {
     console.error('加载热门诗词失败:', error)
     popularPoems.value = []
   } finally {
+    console.log('加载完成，诗词数量:', popularPoems.value.length)
     loading.value = false
   }
 }
