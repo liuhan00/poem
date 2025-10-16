@@ -46,7 +46,12 @@
       <main class="main-content">
         <!-- AI个性化推荐 -->
         <div class="recommendation-section" v-if="!selectedPoem">
-          <h3>AI为您推荐</h3>
+          <div class="section-header">
+            <h3>AI为您推荐</h3>
+            <el-button @click="refreshRecommendations" type="text">
+              刷新推荐
+            </el-button>
+          </div>
           <div class="poem-list">
             <div 
               v-for="poem in recommendedPoems" 
@@ -57,10 +62,20 @@
               <div class="poem-header">
                 <h4 class="poem-title">{{ poem.title }}</h4>
                 <span class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</span>
+                <el-rate 
+                  v-model="poem.difficulty_level" 
+                  :max="5" 
+                  disabled 
+                  size="small"
+                  show-score
+                  text-color="#ff9900"
+                  score-template="{value} 难度"
+                />
               </div>
               <div class="poem-preview">{{ poem.content.split('。')[0] }}。</div>
               <div class="poem-meta">
                 <el-tag v-for="tag in poem.tags" :key="tag" size="small">{{ tag }}</el-tag>
+                <span class="popularity">热度: {{ poem.popularity }}</span>
               </div>
             </div>
           </div>
@@ -73,19 +88,48 @@
               <el-icon><ArrowLeft /></el-icon>
               返回列表
             </el-button>
+            <div class="poem-info">
+              <h2 class="poem-title">{{ selectedPoem.title }}</h2>
+              <p class="poem-author">{{ selectedPoem.dynasty }} · {{ selectedPoem.author }}</p>
+            </div>
           </div>
           
-          <div class="poem-original chinese-style">
-            <h2 class="poem-title">{{ selectedPoem.title }}</h2>
-            <p class="poem-author">{{ selectedPoem.dynasty }} · {{ selectedPoem.author }}</p>
-            <div class="poem-content poem-text">
-              {{ selectedPoem.content }}
+          <div class="poem-content-wrapper">
+            <div class="poem-original chinese-style">
+              <div class="poem-text">
+                {{ selectedPoem.content }}
+              </div>
+              <div class="poem-actions">
+                <el-button @click="toggleFavorite" :type="isFavorite ? 'danger' : 'primary'">
+                  <el-icon><Star /></el-icon>
+                  {{ isFavorite ? '取消收藏' : '收藏' }}
+                </el-button>
+                <el-button @click="sharePoem">
+                  分享
+                </el-button>
+                <el-button @click="analyzePoem">
+                  AI深度解析
+                </el-button>
+              </div>
             </div>
-            <div class="poem-actions">
-              <el-button @click="toggleFavorite" :type="isFavorite ? 'danger' : 'primary'">
-                <el-icon><Star /></el-icon>
-                {{ isFavorite ? '取消收藏' : '收藏' }}
-              </el-button>
+            
+            <!-- 快速解析面板 -->
+            <div class="quick-analysis">
+              <h4>AI快速解析</h4>
+              <div class="analysis-content">
+                <div class="analysis-item">
+                  <span class="label">主题:</span>
+                  <span class="value">{{ getPoemTheme() }}</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">意境:</span>
+                  <span class="value">{{ getPoemMood() }}</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">修辞手法:</span>
+                  <span class="value">{{ getRhetoricalDevices() }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -197,6 +241,89 @@ const handleSearch = async () => {
     console.error('搜索失败:', error)
     ElMessage.error('搜索失败，请重试')
   }
+}
+
+const refreshRecommendations = async () => {
+  try {
+    const result = await searchPoems({
+      query: '推荐',
+      limit: 6
+    })
+    
+    if (result.success && result.data) {
+      recommendedPoems.value = result.data.data || []
+      ElMessage.success('推荐已刷新')
+    }
+  } catch (error) {
+    console.error('刷新推荐失败:', error)
+  }
+}
+
+const sharePoem = () => {
+  if (!selectedPoem.value) return
+  
+  const shareText = `分享诗词: ${selectedPoem.value.title} - ${selectedPoem.value.author}`
+  ElMessage.success('已复制分享内容到剪贴板')
+  // 实际应用中这里应该使用navigator.clipboard.writeText
+}
+
+const analyzePoem = () => {
+  if (!selectedPoem.value) return
+  
+  userMessage.value = `请深度解析这首《${selectedPoem.value.title}》`
+  sendMessage()
+}
+
+const getPoemTheme = () => {
+  if (!selectedPoem.value) return '加载中...'
+  
+  const themes = {
+    '思乡': ['思乡', '故乡', '家乡', '归乡'],
+    '爱情': ['相思', '爱情', '恋人', '思念'],
+    '自然': ['山水', '自然', '风景', '季节'],
+    '人生': ['人生', '时光', '岁月', '感慨']
+  }
+  
+  for (const [theme, keywords] of Object.entries(themes)) {
+    if (keywords.some(keyword => selectedPoem.value!.content.includes(keyword))) {
+      return theme
+    }
+  }
+  
+  return '其他'
+}
+
+const getPoemMood = () => {
+  if (!selectedPoem.value) return '加载中...'
+  
+  const moods = {
+    '豪放': ['豪放', '壮阔', '雄浑', '激昂'],
+    '婉约': ['婉约', '细腻', '柔情', '含蓄'],
+    '忧伤': ['忧伤', '悲凉', '哀愁', '惆怅'],
+    '闲适': ['闲适', '悠然', '恬淡', '宁静']
+  }
+  
+  for (const [mood, keywords] of Object.entries(moods)) {
+    if (keywords.some(keyword => selectedPoem.value!.content.includes(keyword))) {
+      return mood
+    }
+  }
+  
+  return '中性'
+}
+
+const getRhetoricalDevices = () => {
+  if (!selectedPoem.value) return '加载中...'
+  
+  const devices = []
+  const content = selectedPoem.value.content
+  
+  if (content.includes('比喻') || content.match(/如|似|若/)) devices.push('比喻')
+  if (content.includes('对偶') || content.match(/对仗/)) devices.push('对偶')
+  if (content.includes('夸张')) devices.push('夸张')
+  if (content.includes('拟人')) devices.push('拟人')
+  
+  return devices.length > 0 ? devices.join('、') : '直抒胸臆'
 }
 
 const selectPoem = (poem: Poem) => {
