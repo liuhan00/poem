@@ -12,7 +12,7 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "strict": true,
     "noEmit": false,
     "isolatedModules": true,

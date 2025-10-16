@@ -152,7 +152,7 @@ const viewRandomPoem = async () => {
   router.push(`/poem/${randomPoem.id}`)
 }
 
-const viewPoem = (id: number) => {
+const viewPoem = (id: string) => {
   router.push(`/poem/${id}`)
 }
 

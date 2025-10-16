@@ -132,16 +132,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Search, ArrowLeft, Star } from '@element-plus/icons-vue'
-
-// 定义诗词类型接口
-interface Poem {
-  id: number
-  title: string
-  author: string
-  dynasty: string
-  content: string
-  tags: string[]
-}
+import { ElMessage } from 'element-plus'
+import { searchPoems, addFavorite, removeFavorite } from '../utils/api'
+import type { Poem } from '../types/poem'
 
 
 // 响应式数据
@@ -166,26 +159,44 @@ const chatMessages = ref([
 // 示例推荐诗词数据
 const recommendedPoems = ref<Poem[]>([
   {
-    id: 1,
+    id: '1',
     title: '静夜思',
     author: '李白',
     dynasty: '唐',
     content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-    tags: ['思乡', '月夜']
+    tags: ['思乡', '月夜'],
+    difficulty_level: 1,
+    popularity: 95
   },
   {
-    id: 2,
+    id: '2',
     title: '春晓',
     author: '孟浩然',
     dynasty: '唐',
     content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
-    tags: ['春天', '田园']
+    tags: ['春天', '田园'],
+    difficulty_level: 1,
+    popularity: 88
   }
 ])
 
 // 方法
-const handleSearch = () => {
-  console.log('搜索:', searchQuery.value)
+const handleSearch = async () => {
+  if (!searchQuery.value.trim()) return
+  
+  try {
+    const result = await searchPoems({
+      query: searchQuery.value,
+      limit: 10
+    })
+    
+    if (result.success && result.data) {
+      recommendedPoems.value = result.data.data || []
+    }
+  } catch (error) {
+    console.error('搜索失败:', error)
+    ElMessage.error('搜索失败，请重试')
+  }
 }
 
 const selectPoem = (poem: Poem) => {
@@ -196,12 +207,30 @@ const backToList = () => {
   selectedPoem.value = null
 }
 
-const toggleFavorite = () => {
-  isFavorite.value = !isFavorite.value
-  if (isFavorite.value) {
-    favoriteCount.value++
-  } else {
-    favoriteCount.value--
+const toggleFavorite = async () => {
+  if (!selectedPoem.value) return
+  
+  try {
+    if (isFavorite.value) {
+      // 取消收藏
+      const result = await removeFavorite(selectedPoem.value.id)
+      if (result.success) {
+        isFavorite.value = false
+        favoriteCount.value--
+        ElMessage.success('已取消收藏')
+      }
+    } else {
+      // 添加收藏
+      const result = await addFavorite(selectedPoem.value.id)
+      if (result.success) {
+        isFavorite.value = true
+        favoriteCount.value++
+        ElMessage.success('收藏成功')
+      }
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+    ElMessage.error('操作失败，请重试')
   }
 }
 

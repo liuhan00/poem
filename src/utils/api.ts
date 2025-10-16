@@ -2,7 +2,7 @@
 import { supabase } from './supabase'
 import type { Poem, SearchResult, AIResponse, Favorite, ApiResponse } from '../types/poem'
 
-const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '/functions/v1') || ''
+const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '') || ''
 
 // 通用API请求函数
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
@@ -75,7 +75,7 @@ export async function getUserFavorites(params: {
   limit?: number
 }): Promise<ApiResponse<{ data: Favorite[]; pagination: any }>> {
   return apiRequest<{ data: Favorite[]; pagination: any }>('/user-favorites', {
-    method: 'GET',
+    method: 'POST',
     body: JSON.stringify(params)
   })
 }
@@ -91,8 +91,8 @@ export async function addFavorite(poem_id: string): Promise<ApiResponse<Favorite
 // 删除收藏
 export async function removeFavorite(favorite_id: string): Promise<ApiResponse<void>> {
   return apiRequest<void>('/user-favorites', {
-    method: 'DELETE',
-    body: JSON.stringify({ favorite_id })
+    method: 'POST',
+    body: JSON.stringify({ favorite_id, action: 'delete' })
   })
 }
 
