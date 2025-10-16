@@ -45,7 +45,7 @@
     "vue-tsc": "^1.8.25",
     "unplugin-auto-import": "^0.17.2",
     "unplugin-vue-components": "^0.25.2",
-    "@supabase/cli": "^1.120.0"
+    "@supabase": "^1.120.0"
   },
   "keywords": [
     "vue",
