@@ -129,6 +129,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Refresh, Cpu, Connection, EditPen, ChatDotRound } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const activeIndex = ref('/')
@@ -149,12 +150,41 @@ const startExploring = () => {
 }
 
 const viewRandomPoem = async () => {
-  if (popularPoems.value.length === 0) {
-    await loadPopularPoems()
+  try {
+    // 首先确保有诗词数据
+    if (popularPoems.value.length === 0) {
+      await loadPopularPoems()
+    }
+    
+    // 如果热门诗词数据不足，尝试获取更多诗词
+    let availablePoems = popularPoems.value
+    if (availablePoems.length === 0) {
+      console.log('热门诗词数据为空，尝试获取更多诗词...')
+      const morePoemsResult = await getPopularPoems(50) // 获取更多诗词作为备用
+      if (morePoemsResult.success && morePoemsResult.data && morePoemsResult.data.length > 0) {
+        availablePoems = morePoemsResult.data
+        console.log(`获取到 ${availablePoems.length} 首诗词`)
+      }
+    }
+    
+    // 如果仍然没有数据，提示用户
+    if (availablePoems.length === 0) {
+      ElMessage.warning('暂无诗词数据，请稍后再试')
+      return
+    }
+    
+    // 随机选择一首诗词
+    const randomIndex = Math.floor(Math.random() * availablePoems.length)
+    const randomPoem = availablePoems[randomIndex]
+    
+    console.log('随机选择诗词:', randomPoem.title, 'ID:', randomPoem.id)
+    
+    // 跳转到诗词详情页面
+    router.push(`/poem/${randomPoem.id}`)
+  } catch (error) {
+    console.error('随机诗词跳转失败:', error)
+    ElMessage.error('跳转失败，请重试')
   }
-  const randomIndex = Math.floor(Math.random() * popularPoems.value.length)
-  const randomPoem = popularPoems.value[randomIndex]
-  router.push(`/poem/${randomPoem.id}`)
 }
 
 const viewPoem = (id: string) => {

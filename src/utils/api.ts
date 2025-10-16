@@ -132,6 +132,8 @@ export async function recordUserActivity(params: {
 // 获取诗词详情
 export async function getPoemDetail(poem_id: string): Promise<ApiResponse<Poem>> {
   try {
+    console.log('获取诗词详情，ID:', poem_id)
+    
     const { data, error } = await supabase
       .from('poems')
       .select(`
@@ -141,20 +143,30 @@ export async function getPoemDetail(poem_id: string): Promise<ApiResponse<Poem>>
       .eq('id', poem_id)
       .single()
 
-    if (error) throw error
+    console.log('诗词详情查询结果:', { data, error })
 
-    return {
-      success: true,
-      data: {
-        ...data,
-        author: data.authors.name
-      }
+    if (error) {
+      console.error('诗词详情查询错误:', error)
+      throw error
     }
+
+    if (!data) {
+      console.log('诗词不存在，ID:', poem_id)
+      return { success: false, error: '诗词不存在' }
+    }
+
+    const poem = {
+      ...data,
+      author: data.authors.name
+    }
+
+    console.log('诗词详情获取成功:', poem.title)
+    return { success: true, data: poem }
   } catch (error) {
     console.error('获取诗词详情失败:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : '未知错误'
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : '获取诗词详情失败' 
     }
   }
 }
