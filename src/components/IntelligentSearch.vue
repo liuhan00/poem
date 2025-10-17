@@ -125,6 +125,7 @@
                   v-for="author in searchResult.authors" 
                   :key="author.id"
                   class="author-card"
+                  @click="selectAuthor(author)"
                 >
                   <div class="author-avatar">
                     <el-avatar :size="50" :src="author.portrait_url">
@@ -150,6 +151,7 @@
                     :key="theme"
                     class="theme-tag"
                     :style="{ fontSize: getThemeFontSize(theme) }"
+                    @click="selectTheme(theme)"
                   >
                     {{ theme }}
                   </span>
@@ -291,9 +293,36 @@ const getThemeFontSize = (theme: string) => {
 }
 
 const selectPoem = (poem: Poem) => {
-  // 这里可以触发路由跳转到诗词详情页
+  // 触发路由跳转到诗词详情页
   console.log('选择诗词:', poem)
-  ElMessage.info(`查看《${poem.title}》详情`)
+  ElMessage.success(`正在加载《${poem.title}》详情...`)
+  
+  // 模拟路由跳转效果
+  setTimeout(() => {
+    // 这里可以添加实际的路由跳转逻辑
+    // router.push(`/poem/${poem.id}`)
+    ElMessage.info(`已跳转到《${poem.title}》详情页`)
+  }, 500)
+}
+
+const selectAuthor = (author: Author) => {
+  ElMessage.success(`正在加载${author.name}的作品...`)
+  
+  // 模拟作者作品加载
+  setTimeout(() => {
+    // 这里可以添加作者作品展示逻辑
+    ElMessage.info(`已显示${author.name}的${author.dynasty}代作品`)
+  }, 500)
+}
+
+const selectTheme = (theme: string) => {
+  ElMessage.success(`正在搜索"${theme}"主题的诗词...`)
+  
+  // 模拟主题搜索
+  setTimeout(() => {
+    searchQuery.value = theme
+    handleSearch()
+  }, 300)
 }
 
 const loadAvailableData = async () => {
@@ -380,12 +409,31 @@ onMounted(() => {
   border: 1px solid #e4e7ed;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.poem-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.1), transparent);
+  transition: left 0.6s;
+}
+
+.poem-card:hover::before {
+  left: 100%;
 }
 
 .poem-card:hover {
   border-color: #409eff;
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
+  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .poem-header {
@@ -428,6 +476,15 @@ onMounted(() => {
   padding: 1rem;
   border: 1px solid #e4e7ed;
   border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+}
+
+.author-card:hover {
+  border-color: #67c23a;
+  box-shadow: 0 4px 15px rgba(103, 194, 58, 0.15);
+  transform: translateX(5px);
 }
 
 .author-avatar {
@@ -459,11 +516,18 @@ onMounted(() => {
 .theme-tag {
   margin: 0 0.5rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  background: #f5f7fa;
+  display: inline-block;
 }
 
 .theme-tag:hover {
   color: #409eff;
+  background: #ecf5ff;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 .searching-state, .welcome-state {

@@ -60,17 +60,60 @@
       </div>
       
       <div v-else class="graph-visualization">
-        <!-- 这里将使用D3.js或ECharts渲染图谱 -->
-        <div class="graph-placeholder">
-          <h3>知识图谱可视化区域</h3>
-          <p>节点数量: {{ graphData.nodes.length }}</p>
-          <p>关系数量: {{ graphData.links.length }}</p>
-          <div class="graph-stats">
-            <el-tag v-for="stat in graphStats" :key="stat.label" :type="stat.type">
-              {{ stat.label }}: {{ stat.value }}
-            </el-tag>
-          </div>
-        </div>
+        <!-- 交互式SVG图谱 -->
+        <svg :width="svgWidth" :height="svgHeight" class="graph-svg">
+          <!-- 连接线 -->
+          <g class="links">
+            <line
+              v-for="link in visibleLinks"
+              :key="link.id"
+              :x1="getNodeX(link.source)"
+              :y1="getNodeY(link.source)"
+              :x2="getNodeX(link.target)"
+              :y2="getNodeY(link.target)"
+              class="link"
+              :class="{ highlighted: isLinkHighlighted(link) }"
+            />
+          </g>
+          
+          <!-- 节点 -->
+          <g class="nodes">
+            <circle
+              v-for="node in visibleNodes"
+              :key="node.id"
+              :cx="getNodeX(node.id)"
+              :cy="getNodeY(node.id)"
+              :r="getNodeSize(node)"
+              :class="[
+                'node',
+                `node-${node.type}`,
+                { 
+                  selected: selectedNode?.id === node.id,
+                  highlighted: isNodeHighlighted(node),
+                  hovered: hoveredNode?.id === node.id
+                }
+              ]"
+              @click="selectNode(node)"
+              @mouseenter="hoverNode(node)"
+              @mouseleave="unhoverNode"
+            />
+            
+            <!-- 节点标签 -->
+            <text
+              v-for="node in visibleNodes"
+              :key="`label-${node.id}`"
+              :x="getNodeX(node.id) + getNodeSize(node) + 5"
+              :y="getNodeY(node.id)"
+              class="node-label"
+              :class="{ 
+                selected: selectedNode?.id === node.id,
+                highlighted: isNodeHighlighted(node)
+              }"
+            >
+              {{ getNodeLabel(node) }}
+            </text>
+          </g>
+        </svg>
       </div>
     </div>
 
@@ -79,12 +122,20 @@
         <h4>节点信息</h4>
         <div v-if="selectedNode" class="node-info">
           <h5>{{ selectedNode.name }}</h5>
-          <p class="node-type">{{ selectedNode.type }}</p>
+          <p class="node-type">{{ getNodeTypeLabel(selectedNode.type) }}</p>
           <div class="node-properties">
             <div v-for="(value, key) in selectedNode.properties" :key="key" class="property">
               <span class="property-key">{{ key }}:</span>
               <span class="property-value">{{ value }}</span>
             </div>
+          </div>
+          <div class="node-actions">
+            <el-button type="primary" size="small" @click="expandNode(selectedNode)">
+              展开关联
+            </el-button>
+            <el-button size="small" @click="centerOnNode(selectedNode)">
+              居中显示
+            </el-button>
           </div>
         </div>
         <div v-else class="no-selection">
@@ -116,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Loading, DataBoard } from '@element-plus/icons-vue'
 import { getKnowledgeGraph } from '../utils/api'
@@ -132,6 +183,7 @@ interface GraphNode {
 }
 
 interface GraphLink {
+  id: string
   source: string
   target: string
   type: string
@@ -150,12 +202,18 @@ const graphType = ref<'force' | 'tree' | 'circular'>('force')
 const selectedCategory = ref('all')
 const searchNode = ref('')
 const selectedNode = ref<GraphNode | null>(null)
+const hoveredNode = ref<GraphNode | null>(null)
+const svgWidth = ref(800)
+const svgHeight = ref(500)
 
 // 图数据
 const graphData = reactive<GraphData>({
   nodes: [],
   links: []
 })
+
+// 节点位置数据
+const nodePositions = reactive<Record<string, { x: number; y: number }>>({})
 
 // 图例配置
 const legendItems = [
@@ -174,19 +232,24 @@ const graphStats = computed(() => [
   { label: '关系数量', value: graphData.links.length, type: 'info' }
 ])
 
+// 可见节点和连接
+const visibleNodes = computed(() => graphData.nodes)
+const visibleLinks = computed(() => graphData.links)
+
 // 方法
 const loadGraphData = async () => {
   try {
     loading.value = true
     const result = await getKnowledgeGraph({
-      category: selectedCategory.value,
       depth: 2,
-      limit: 100
+      limit: 50
     })
 
     if (result.success && result.data) {
       graphData.nodes = result.data.nodes || []
       graphData.links = result.data.links || []
+      await nextTick()
+      initializeNodePositions()
     } else {
       ElMessage.error('加载知识图谱数据失败')
     }
@@ -198,17 +261,88 @@ const loadGraphData = async () => {
   }
 }
 
+const initializeNodePositions = () => {
+  // 简单的力导向布局算法
+  const centerX = svgWidth.value / 2
+  const centerY = svgHeight.value / 2
+  const radius = Math.min(svgWidth.value, svgHeight.value) / 3
+  
+  graphData.nodes.forEach((node, index) => {
+    const angle = (index / graphData.nodes.length) * 2 * Math.PI
+    const distance = radius * (0.5 + Math.random() * 0.5)
+    
+    nodePositions[node.id] = {
+      x: centerX + Math.cos(angle) * distance,
+      y: centerY + Math.sin(angle) * distance
+    }
+  })
+}
+
+const getNodeX = (nodeId: string) => {
+  return nodePositions[nodeId]?.x || svgWidth.value / 2
+}
+
+const getNodeY = (nodeId: string) => {
+  return nodePositions[nodeId]?.y || svgHeight.value / 2
+}
+
+const getNodeSize = (node: GraphNode) => {
+  return node.size || 8
+}
+
+const getNodeLabel = (node: GraphNode) => {
+  return node.name.length > 8 ? node.name.substring(0, 8) + '...' : node.name
+}
+
+const getNodeTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    poem: '诗词',
+    author: '作者',
+    dynasty: '朝代',
+    theme: '主题'
+  }
+  return labels[type] || type
+}
+
+const isNodeHighlighted = (node: GraphNode) => {
+  if (!searchNode.value) return false
+  return node.name.toLowerCase().includes(searchNode.value.toLowerCase())
+}
+
+const isLinkHighlighted = (link: GraphLink) => {
+  if (!selectedNode.value) return false
+  return link.source === selectedNode.value.id || link.target === selectedNode.value.id
+}
+
+const selectNode = (node: GraphNode) => {
+  selectedNode.value = node
+  ElMessage.success(`已选择: ${node.name} (${getNodeTypeLabel(node.type)})`)
+}
+
+const hoverNode = (node: GraphNode) => {
+  hoveredNode.value = node
+}
+
+const unhoverNode = () => {
+  hoveredNode.value = null
+}
+
+const expandNode = (node: GraphNode) => {
+  ElMessage.info(`展开 ${node.name} 的关联节点`)
+  // 这里可以添加展开关联节点的逻辑
+}
+
+const centerOnNode = (node: GraphNode) => {
+  ElMessage.info(`将 ${node.name} 居中显示`)
+  // 这里可以添加居中显示节点的逻辑
+}
+
 const updateGraph = () => {
   loadGraphData()
 }
 
 const highlightNode = () => {
-  // 高亮搜索匹配的节点
-  console.log('搜索节点:', searchNode.value)
-}
-
-const selectNode = (node: GraphNode) => {
-  selectedNode.value = node
+  // 搜索高亮逻辑已经在computed属性中实现
 }
 
 // 初始化
@@ -252,6 +386,7 @@ onMounted(() => {
   border-radius: 4px;
   position: relative;
   overflow: hidden;
+  background: #fafafa;
 }
 
 .graph-sidebar {
@@ -287,29 +422,110 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.graph-placeholder {
-  padding: 2rem;
-  text-align: center;
-  color: #606266;
+.graph-visualization {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.graph-stats {
-  margin-top: 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
+.graph-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 连接线样式 */
+.link {
+  stroke: #ccc;
+  stroke-width: 1;
+  transition: all 0.3s ease;
+}
+
+.link.highlighted {
+  stroke: #409eff;
+  stroke-width: 3;
+}
+
+/* 节点样式 */
+.node {
+  fill: #409eff;
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.node-poem {
+  fill: #409eff;
+}
+
+.node-author {
+  fill: #67c23a;
+}
+
+.node-dynasty {
+  fill: #e6a23c;
+}
+
+.node-theme {
+  fill: #f56c6c;
+}
+
+.node:hover {
+  stroke-width: 3;
+  r: 10;
+}
+
+.node.highlighted {
+  stroke: #ff6b6b;
+  stroke-width: 3;
+  r: 12;
+  filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.6));
+}
+
+.node.selected {
+  stroke: #409eff;
+  stroke-width: 4;
+  r: 14;
+  filter: drop-shadow(0 0 12px rgba(64, 158, 255, 0.8));
+}
+
+.node.hovered {
+  r: 11;
+}
+
+/* 节点标签样式 */
+.node-label {
+  font-size: 12px;
+  fill: #606266;
+  font-weight: 500;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.node-label.highlighted {
+  fill: #ff6b6b;
+  font-weight: 600;
+}
+
+.node-label.selected {
+  fill: #409eff;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .node-info h5 {
   margin: 0 0 0.5rem 0;
   color: #303133;
+  font-size: 1.1rem;
 }
 
 .node-type {
   margin: 0 0 1rem 0;
   color: #909399;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .property {
@@ -326,6 +542,16 @@ onMounted(() => {
 
 .property-value {
   color: #909399;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .legend {
@@ -376,5 +602,6 @@ onMounted(() => {
   text-align: center;
   color: #909399;
   font-style: italic;
+  padding: 2rem 0;
 }
 </style>
