@@ -1,11 +1,13 @@
 <template>
   <div id="app">
     <RouterView />
+    <FloatingAIAssistant />
   </div>
 </template>
 
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import FloatingAIAssistant from './components/FloatingAIAssistant.vue'
 </script>
 
 <style>

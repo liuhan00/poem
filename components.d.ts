@@ -37,6 +37,7 @@ declare module 'vue' {
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
+    FloatingAIAssistant: typeof import('./src/components/FloatingAIAssistant.vue')['default']
     FooterBar: typeof import('./src/components/FooterBar.vue')['default']
     IntelligentSearch: typeof import('./src/components/IntelligentSearch.vue')['default']
     KnowledgeGraph: typeof import('./src/components/KnowledgeGraph.vue')['default']
