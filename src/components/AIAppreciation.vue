@@ -240,10 +240,10 @@ const activeAnalysisItems = ref(['theme', 'artistic', 'cultural', 'learning'])
 const userMessage = ref('')
 const sending = ref(false)
 
-// 示例诗词数据
+// 示例诗词数据（使用UUID格式的ID）
 const availablePoems = ref<Poem[]>([
   {
-    id: '1',
+    id: '4827d233-f9f8-4325-8485-07764efd4aff',
     title: '静夜思',
     author: '李白',
     dynasty: '唐',
@@ -253,7 +253,7 @@ const availablePoems = ref<Poem[]>([
     popularity: 95
   },
   {
-    id: '2',
+    id: '2b8c9e1a-7f3d-4e5c-9a6b-8d7e6f5a4b3c',
     title: '春晓',
     author: '孟浩然',
     dynasty: '唐',
@@ -263,7 +263,7 @@ const availablePoems = ref<Poem[]>([
     popularity: 88
   },
   {
-    id: '3',
+    id: '3a9b8c7d-6e5f-4a3b-2c1d-0e9f8a7b6c5d',
     title: '登高',
     author: '杜甫',
     dynasty: '唐',
