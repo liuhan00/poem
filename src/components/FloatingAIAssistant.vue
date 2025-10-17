@@ -151,22 +151,57 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    // 模拟AI回复
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(message)
-      chatMessages.value.push({
-        id: Date.now(),
-        type: 'ai',
-        content: aiResponse,
-        timestamp: new Date()
-      })
-      sending.value = false
-      scrollToBottom()
-    }, 1000)
+    // 调用n8n AI工作流
+    const aiResponse = await callN8NAI(message)
+    chatMessages.value.push({
+      id: Date.now(),
+      type: 'ai',
+      content: aiResponse,
+      timestamp: new Date()
+    })
+    sending.value = false
+    scrollToBottom()
   } catch (error) {
     console.error('发送消息失败:', error)
-    ElMessage.error('发送失败，请重试')
+    // 如果n8n调用失败，使用本地回复
+    const localResponse = generateAIResponse(message)
+    chatMessages.value.push({
+      id: Date.now(),
+      type: 'ai',
+      content: localResponse,
+      timestamp: new Date()
+    })
     sending.value = false
+    scrollToBottom()
+  }
+}
+
+// 调用n8n AI工作流
+const callN8NAI = async (question: string): Promise<string> => {
+  const n8nWebhookUrl = 'https://n8n-iqksksnv.ap-southeast-1.clawcloudrun.com/webhook-test/58324d15-40b6-4d25-9e45-c38cf92996af'
+  
+  try {
+    const response = await fetch(n8nWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question: question,
+        timestamp: new Date().toISOString(),
+        source: 'poem-app'
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.answer || data.response || '抱歉，我暂时无法回答这个问题。'
+  } catch (error) {
+    console.warn('n8n工作流调用失败，使用本地智能回复:', error)
+    throw error // 抛出错误让上层处理
   }
 }
 
