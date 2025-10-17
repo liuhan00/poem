@@ -54,7 +54,7 @@
             </el-card>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
-            <el-card class="feature-card chinese-style" shadow="hover">
+            <el-card class="feature-card chinese-style" shadow="hover" @click="viewKnowledgeGraph">
               <div class="feature-icon">
                 <el-icon size="48"><Connection /></el-icon>
               </div>
@@ -189,6 +189,10 @@ const viewRandomPoem = async () => {
 
 const viewPoem = (id: string) => {
   router.push(`/poem/${id}`)
+}
+
+const viewKnowledgeGraph = () => {
+  router.push('/knowledge-graph')
 }
 
 const loadPopularPoems = async () => {

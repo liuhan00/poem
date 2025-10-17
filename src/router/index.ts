@@ -27,7 +27,7 @@ const router = createRouter({
     {
       path: '/knowledge-graph',
       name: 'knowledge-graph',
-      component: () => import('../views/KnowledgeView.vue')
+      component: () => import('../views/KnowledgeGraphView.vue')
     },
     {
       path: '/poem/:id',

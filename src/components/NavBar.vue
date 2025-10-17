@@ -31,6 +31,10 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>知识探索</span>
           </el-menu-item>
+          <el-menu-item index="/knowledge-graph">
+            <el-icon><DataBoard /></el-icon>
+            <span>知识图谱</span>
+          </el-menu-item>
         </el-menu>
       </nav>
 
