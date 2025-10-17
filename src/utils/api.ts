@@ -2,7 +2,7 @@
 import { supabase } from './supabase'
 import type { Poem, SearchResult, AIResponse, Favorite, ApiResponse } from '../types/poem'
 
-const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '') || ''
+const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '') || 'https://iolkcrlsqemuauaopepc.supabase.co'
 
 // 通用API请求函数
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
