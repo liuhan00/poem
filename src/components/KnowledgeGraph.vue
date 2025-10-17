@@ -251,14 +251,104 @@ const loadGraphData = async () => {
       await nextTick()
       initializeNodePositions()
     } else {
-      ElMessage.error('加载知识图谱数据失败')
+      // API调用失败时使用示例数据
+      ElMessage.warning('使用示例数据展示')
+      loadSampleData()
     }
   } catch (error) {
     console.error('加载知识图谱失败:', error)
-    ElMessage.error('网络错误，请重试')
+    // 网络错误时使用示例数据
+    ElMessage.warning('网络错误，使用示例数据展示')
+    loadSampleData()
   } finally {
     loading.value = false
   }
+}
+
+const loadSampleData = () => {
+  // 示例知识图谱数据
+  graphData.nodes = [
+    {
+      id: 'poem_1',
+      name: '静夜思',
+      type: 'poem',
+      properties: {
+        author: '李白',
+        dynasty: '唐',
+        content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+        tags: ['思乡', '月亮']
+      },
+      size: 8,
+      color: '#409eff'
+    },
+    {
+      id: 'author_1',
+      name: '李白',
+      type: 'author',
+      properties: {
+        dynasty: '唐',
+        biography: '唐代著名浪漫主义诗人'
+      },
+      size: 6,
+      color: '#67c23a'
+    },
+    {
+      id: 'dynasty_唐',
+      name: '唐',
+      type: 'dynasty',
+      properties: {
+        period: '618-907年'
+      },
+      size: 5,
+      color: '#e6a23c'
+    },
+    {
+      id: 'theme_思乡',
+      name: '思乡',
+      type: 'theme',
+      properties: {},
+      size: 4,
+      color: '#f56c6c'
+    },
+    {
+      id: 'poem_2',
+      name: '春晓',
+      type: 'poem',
+      properties: {
+        author: '孟浩然',
+        dynasty: '唐',
+        content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
+        tags: ['春天', '自然']
+      },
+      size: 7,
+      color: '#409eff'
+    },
+    {
+      id: 'author_2',
+      name: '孟浩然',
+      type: 'author',
+      properties: {
+        dynasty: '唐',
+        biography: '唐代山水田园诗人'
+      },
+      size: 6,
+      color: '#67c23a'
+    }
+  ]
+
+  graphData.links = [
+    { id: 'link1', source: 'poem_1', target: 'author_1', type: '作者' },
+    { id: 'link2', source: 'poem_1', target: 'dynasty_唐', type: '朝代' },
+    { id: 'link3', source: 'poem_1', target: 'theme_思乡', type: '主题' },
+    { id: 'link4', source: 'author_1', target: 'dynasty_唐', type: '所属朝代' },
+    { id: 'link5', source: 'poem_2', target: 'author_2', type: '作者' },
+    { id: 'link6', source: 'poem_2', target: 'dynasty_唐', type: '朝代' },
+    { id: 'link7', source: 'author_2', target: 'dynasty_唐', type: '所属朝代' }
+  ]
+
+  nextTick(() => {
+    initializeNodePositions()
+  })
 }
 
 const initializeNodePositions = () => {
