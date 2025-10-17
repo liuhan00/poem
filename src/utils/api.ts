@@ -405,6 +405,72 @@ export async function deletePoem(poemId: string): Promise<ApiResponse<void>> {
   }
 }
 
+// 知识图谱相关API
+export async function getKnowledgeGraph(params: {
+  center_node_id?: string;
+  center_node_type?: 'poem' | 'author' | 'dynasty';
+  depth?: number;
+  limit?: number;
+}): Promise<ApiResponse<KnowledgeGraphData>> {
+  return apiRequest<KnowledgeGraphData>('/knowledge-graph', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+// 智能搜索API
+export async function intelligentSearch(params: {
+  query: string;
+  search_type?: 'semantic' | 'keyword' | 'hybrid';
+  filters?: {
+    dynasty?: string[];
+    author?: string[];
+    theme?: string[];
+    difficulty_level?: number[];
+  };
+  limit?: number;
+}): Promise<ApiResponse<IntelligentSearchResult>> {
+  return apiRequest<IntelligentSearchResult>('/intelligent-search', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+// AI诗词分析API
+export async function analyzePoemAI(params: {
+  poem_id: string;
+  analysis_type?: 'quick' | 'deep' | 'comparative';
+}): Promise<ApiResponse<AIAnalysisResult>> {
+  return apiRequest<AIAnalysisResult>('/poem-analysis', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+// 获取相关概念API
+export async function getRelatedConcepts(params: {
+  concept: string;
+  relationship_type?: 'thematic' | 'temporal' | 'stylistic';
+  limit?: number;
+}): Promise<ApiResponse<string[]>> {
+  return apiRequest<string[]>('/related-concepts', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+// 获取诗词主题分布API
+export async function getThemeDistribution(params: {
+  dynasty?: string;
+  author?: string;
+  time_period?: string;
+}): Promise<ApiResponse<Record<string, number>>> {
+  return apiRequest<Record<string, number>>('/theme-distribution', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
 export default {
   searchPoems,
   sendAIMessage,

@@ -74,3 +74,46 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+// 知识图谱相关类型
+export interface KnowledgeGraphNode {
+  id: string;
+  type: 'poem' | 'author' | 'dynasty' | 'theme';
+  label: string;
+  properties: Record<string, any>;
+  size?: number;
+  color?: string;
+}
+
+export interface KnowledgeGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+  label: string;
+  weight: number;
+}
+
+export interface KnowledgeGraphData {
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+}
+
+export interface IntelligentSearchResult {
+  poems: Poem[];
+  authors: Author[];
+  themes: string[];
+  related_concepts: string[];
+  search_intent: string;
+  confidence_score: number;
+}
+
+export interface AIAnalysisResult {
+  theme: string;
+  mood: string;
+  rhetorical_devices: string[];
+  cultural_context: string;
+  modern_interpretation: string;
+  difficulty_level: number;
+  recommended_reading: string[];
+}

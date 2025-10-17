@@ -25,6 +25,11 @@ const router = createRouter({
       component: () => import('../views/KnowledgeView.vue')
     },
     {
+      path: '/knowledge-graph',
+      name: 'knowledge-graph',
+      component: () => import('../views/KnowledgeView.vue')
+    },
+    {
       path: '/poem/:id',
       name: 'poem-detail',
       component: () => import('../views/PoemDetailView.vue')
