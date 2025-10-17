@@ -151,8 +151,8 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    // 调用n8n AI工作流
-    const aiResponse = await callN8NAI(message)
+    // 由于n8n存在CORS问题，直接使用本地智能回复
+    const aiResponse = generateAIResponse(message)
     chatMessages.value.push({
       id: Date.now(),
       type: 'ai',
@@ -163,12 +163,11 @@ const sendMessage = async () => {
     scrollToBottom()
   } catch (error) {
     console.error('发送消息失败:', error)
-    // 如果n8n调用失败，使用本地回复
-    const localResponse = generateAIResponse(message)
+    // 如果本地回复失败，使用默认回复
     chatMessages.value.push({
       id: Date.now(),
       type: 'ai',
-      content: localResponse,
+      content: '抱歉，我暂时无法回答这个问题。请尝试重新提问。',
       timestamp: new Date()
     })
     sending.value = false
