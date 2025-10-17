@@ -1,6 +1,15 @@
 // API工具函数
 import { supabase } from './supabase'
-import type { Poem, SearchResult, AIResponse, Favorite, ApiResponse } from '../types/poem'
+import type { 
+  Poem, 
+  SearchResult, 
+  AIResponse, 
+  Favorite, 
+  ApiResponse,
+  KnowledgeGraphData,
+  IntelligentSearchResult,
+  AIAnalysisResult
+} from '../types/poem'
 
 const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '') || 'https://iolkcrlsqemuauaopepc.supabase.co'
 

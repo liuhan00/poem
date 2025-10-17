@@ -63,16 +63,16 @@
         <!-- 交互式SVG图谱 -->
         <svg :width="svgWidth" :height="svgHeight" class="graph-svg">
           <!-- 连接线 -->
-          <g class="links">
+          <g class="edges">
             <line
-              v-for="link in visibleLinks"
-              :key="link.id"
-              :x1="getNodeX(link.source)"
-              :y1="getNodeY(link.source)"
-              :x2="getNodeX(link.target)"
-              :y2="getNodeY(link.target)"
-              class="link"
-              :class="{ highlighted: isLinkHighlighted(link) }"
+              v-for="edge in visibleEdges"
+              :key="edge.id"
+              :x1="getNodeX(edge.source)"
+              :y1="getNodeY(edge.source)"
+              :x2="getNodeX(edge.target)"
+              :y2="getNodeY(edge.target)"
+              class="edge"
+              :class="{ highlighted: isEdgeHighlighted(edge) }"
             />
           </g>
           
@@ -192,7 +192,7 @@ interface GraphLink {
 
 interface GraphData {
   nodes: GraphNode[]
-  links: GraphLink[]
+  edges: GraphLink[]
 }
 
 // 响应式数据
@@ -209,7 +209,7 @@ const svgHeight = ref(500)
 // 图数据
 const graphData = reactive<GraphData>({
   nodes: [],
-  links: []
+  edges: []
 })
 
 // 节点位置数据
@@ -229,12 +229,12 @@ const graphStats = computed(() => [
   { label: '作者节点', value: graphData.nodes.filter(n => n.type === 'author').length, type: 'success' },
   { label: '朝代节点', value: graphData.nodes.filter(n => n.type === 'dynasty').length, type: 'warning' },
   { label: '主题节点', value: graphData.nodes.filter(n => n.type === 'theme').length, type: 'danger' },
-  { label: '关系数量', value: graphData.links.length, type: 'info' }
+  { label: '关系数量', value: graphData.edges.length, type: 'info' }
 ])
 
 // 可见节点和连接
 const visibleNodes = computed(() => graphData.nodes)
-const visibleLinks = computed(() => graphData.links)
+const visibleEdges = computed(() => graphData.edges)
 
 // 方法
 const loadGraphData = async () => {
@@ -247,7 +247,7 @@ const loadGraphData = async () => {
 
     if (result.success && result.data) {
       graphData.nodes = result.data.nodes || []
-      graphData.links = result.data.links || []
+      graphData.edges = result.data.edges || []
       await nextTick()
       initializeNodePositions()
     } else {
@@ -336,8 +336,8 @@ const loadSampleData = () => {
     }
   ]
 
-  graphData.links = [
-    { id: 'link1', source: 'poem_1', target: 'author_1', type: '作者' },
+  graphData.edges = [
+    { id: 'edge1', source: 'poem_1', target: 'author_1', type: '作者' },
     { id: 'link2', source: 'poem_1', target: 'dynasty_唐', type: '朝代' },
     { id: 'link3', source: 'poem_1', target: 'theme_思乡', type: '主题' },
     { id: 'link4', source: 'author_1', target: 'dynasty_唐', type: '所属朝代' },

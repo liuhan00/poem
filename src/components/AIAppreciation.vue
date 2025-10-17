@@ -190,7 +190,7 @@
               :class="['message', message.type]"
             >
               <div class="message-avatar">
-                <el-icon v-if="message.type === 'ai'"><Robot /></el-icon>
+                <el-icon v-if="message.type === 'ai'"><DataAnalysis /></el-icon>
                 <el-icon v-else><User /></el-icon>
               </div>
               <div class="message-content">
@@ -227,8 +227,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DataAnalysis, Robot, User } from '@element-plus/icons-vue'
-import { analyzePoem as analyzePoemApi, searchPoems } from '../utils/api'
+import { DataAnalysis, User } from '@element-plus/icons-vue'
+import { analyzePoemAI as analyzePoemApi, searchPoems } from '../utils/api'
 import type { Poem } from '../types/poem'
 
 // 响应式数据

@@ -78,6 +78,7 @@ export interface ApiResponse<T> {
 // 知识图谱相关类型
 export interface KnowledgeGraphNode {
   id: string;
+  name: string;
   type: 'poem' | 'author' | 'dynasty' | 'theme';
   label: string;
   properties: Record<string, any>;
