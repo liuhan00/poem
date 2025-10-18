@@ -103,12 +103,15 @@
 import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, User, Minus, Refresh } from '@element-plus/icons-vue'
+import { sendAIMessage, getPopularPoems } from '../utils/api'
+import type { Poem } from '../types/poem'
 
 // 响应式数据
 const isOpen = ref(false)
 const userMessage = ref('')
 const sending = ref(false)
 const messagesContainer = ref<HTMLElement>()
+const availablePoems = ref<Poem[]>([])
 
 // 聊天消息
 const chatMessages = ref([
@@ -149,10 +152,10 @@ const sendMessage = async () => {
   })
 
   scrollToBottom()
-
+  
   try {
-    // 由于n8n存在CORS问题，直接使用本地智能回复
-    const aiResponse = generateAIResponse(message)
+    // 使用增强的AI回复生成
+    const aiResponse = await generateEnhancedAIResponse(message)
     chatMessages.value.push({
       id: Date.now(),
       type: 'ai',
@@ -163,11 +166,12 @@ const sendMessage = async () => {
     scrollToBottom()
   } catch (error) {
     console.error('发送消息失败:', error)
-    // 如果本地回复失败，使用默认回复
+    // 如果回复失败，使用本地智能回复
+    const fallbackResponse = generateLocalAIResponse(message)
     chatMessages.value.push({
       id: Date.now(),
       type: 'ai',
-      content: '抱歉，我暂时无法回答这个问题。请尝试重新提问。',
+      content: fallbackResponse,
       timestamp: new Date()
     })
     sending.value = false
@@ -210,7 +214,12 @@ const suggestQuestion = () => {
     '《春晓》的翻译和赏析',
     '介绍诗人杜甫的生平和诗风',
     '《登高》的艺术特色分析',
-    '王维《相思》的创作背景'
+    '王维《相思》的创作背景',
+    '李白和杜甫的诗风有什么不同？',
+    '唐诗和宋词的主要区别是什么？',
+    '如何创作一首合格的绝句？',
+    '《江雪》表达了怎样的情感？',
+    '诗词中的意象有什么作用？'
   ]
 
   const randomQuestion = questions[Math.floor(Math.random() * questions.length)]
@@ -313,14 +322,14 @@ const generateAIResponse = (question: string): string => {
   // 如果检测到具体的诗词赏析请求
   if (poemTitle && poemAnalysisDB[poemTitle]) {
     const poem = poemAnalysisDB[poemTitle]
-    return generateDetailedAnalysis(poem, question)
+    return generateEnhancedDetailedAnalysis(poem, question)
   }
 
   // 诗人信息查询
   const poetMatch = question.match(/(.+?)的(?:介绍|生平|诗风|作品)|诗人(.+?)/)
   if (poetMatch) {
     const poetName = poetMatch[1] || poetMatch[2]
-    return generatePoetInfo(poetName, poemAnalysisDB)
+    return generateEnhancedPoetInfo(poetName, poemAnalysisDB)
   }
 
   // 简单的规则匹配生成回复
@@ -343,8 +352,8 @@ const generateAIResponse = (question: string): string => {
   return `关于"${question}"，我可以为您提供专业的诗词赏析。如果您想了解具体的诗词作品（如《静夜思》、《春晓》等），请告诉我诗词名称，我会为您提供详细的背景、翻译、赏析和诗人介绍。`
 }
 
-// 生成详细的诗词分析
-const generateDetailedAnalysis = (poem: any, question: string): string => {
+// 生成详细的诗词分析（重命名避免冲突）
+const generateEnhancedDetailedAnalysis = (poem: any, question: string): string => {
   let analysis = `《${poem.title}》 - ${poem.dynasty}·${poem.author}
 
 `
@@ -421,8 +430,8 @@ ${poem.relatedPoems.join('、')}`
   return analysis
 }
 
-// 生成诗人信息
-const generatePoetInfo = (poetName: string, db: Record<string, any>): string => {
+// 生成诗人信息（重命名避免冲突）
+const generateEnhancedPoetInfo = (poetName: string, db: Record<string, any>): string => {
   const poets: Record<string, any> = {
     '李白': {
       name: '李白',
@@ -474,8 +483,418 @@ ${poet.成就}`
   return `关于诗人"${poetName}"，我目前的信息库中相关资料有限。您可以询问李白、杜甫、王维、孟浩然等著名诗人的信息。`
 }
 
+// 加载热门诗词数据
+const loadPopularPoems = async () => {
+  try {
+    const result = await getPopularPoems(20)
+    if (result.success && result.data) {
+      availablePoems.value = result.data
+    }
+  } catch (error) {
+    console.error('加载诗词数据失败:', error)
+  }
+}
+
+// 增强的AI回复生成函数
+const generateEnhancedAIResponse = async (question: string): Promise<string> => {
+  try {
+    // 首先尝试调用API
+    const apiResult = await sendAIMessage({ message: question })
+    if (apiResult.success && apiResult.data) {
+      return apiResult.data.response || generateLocalAIResponse(question)
+    }
+  } catch (error) {
+    console.warn('API调用失败，使用本地智能回复:', error)
+  }
+  
+  return generateLocalAIResponse(question)
+}
+
+// 改进的本地AI回复生成
+const generateLocalAIResponse = (question: string): string => {
+  // 诗词赏析数据库（扩展版）
+  const poemAnalysisDB: Record<string, any> = {
+    '静夜思': {
+      title: '静夜思',
+      author: '李白',
+      dynasty: '唐',
+      content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+      background: '这首诗创作于唐玄宗开元年间，李白当时客居他乡，在一个寂静的月夜思念故乡而作。',
+      translation: '床前洒满了明亮的月光，好像地上铺了一层白霜。抬起头来望着天上的明月，低下头来不禁思念起远方的故乡。',
+      appreciation: '这首诗以朴素的语言表达了深沉的思乡之情。前两句写景，后两句抒情，情景交融。诗人通过"明月光"与"地上霜"的比喻，营造出清冷孤寂的意境。"举头"和"低头"的动作描写，生动展现了游子思乡的典型形象。',
+      poetInfo: '李白（701-762），字太白，号青莲居士，唐代伟大的浪漫主义诗人，被后人誉为"诗仙"。其诗风豪放飘逸，想象丰富，语言流转自然。',
+      relatedPoems: ['《月下独酌》', '《春夜洛城闻笛》', '《关山月》'],
+      themes: ['思乡', '月夜', '孤独'],
+      rhetoricalDevices: ['比喻', '对偶', '白描']
+    },
+    '春晓': {
+      title: '春晓',
+      author: '孟浩然',
+      dynasty: '唐',
+      content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
+      background: '这首诗描绘了春天早晨的景象，表现了诗人对大自然的热爱和对春光易逝的感慨。',
+      translation: '春天的夜晚睡得香甜，不知不觉天就亮了，到处都能听到鸟儿的啼叫声。想起昨夜的风雨声，不知道有多少花儿被风雨打落。',
+      appreciation: '这首诗语言清新自然，意境优美。前两句写春晨的生机，后两句转写对春光的珍惜。通过"不觉晓"表现春睡的香甜，"闻啼鸟"展现春晨的活力，"风雨声"和"花落"则暗含对春光易逝的惋惜。',
+      poetInfo: '孟浩然（689-740），唐代著名的山水田园诗人，与王维并称"王孟"。其诗风清新自然，擅长描绘山水田园风光。',
+      relatedPoems: ['《过故人庄》', '《宿建德江》', '《夜归鹿门歌》'],
+      themes: ['春天', '自然', '时光'],
+      rhetoricalDevices: ['白描', '对比', '拟人']
+    },
+    '登高': {
+      title: '登高',
+      author: '杜甫',
+      dynasty: '唐',
+      content: '风急天高猿啸哀，渚清沙白鸟飞回。无边落木萧萧下，不尽长江滚滚来。万里悲秋常作客，百年多病独登台。艰难苦恨繁霜鬓，潦倒新停浊酒杯。',
+      background: '这首诗是杜甫晚年流寓夔州时所作，当时诗人年老多病，生活困顿，登高望远时感慨万千。',
+      translation: '秋风急促，天空高远，猿猴的啼叫声显得悲哀。水清沙白的小洲上，鸟儿在盘旋飞翔。无边无际的树木，落叶萧萧飘下，望不到头的长江水滚滚而来。悲对秋景感慨万里漂泊常年为客，一生当中疾病缠身今日独上高台。历尽了艰难苦恨白发长满了双鬓，衰颓满心偏又暂停了浇愁的酒杯。',
+      appreciation: '这首诗被誉为"古今七律第一"，全诗对仗工整，意境雄浑。前四句写景，后四句抒情，情景交融。诗人将个人的身世之悲与国家的命运之忧融为一体，展现了深沉的忧国忧民情怀。',
+      poetInfo: '杜甫（712-770），字子美，自号少陵野老，唐代伟大的现实主义诗人，被后人尊为"诗圣"。其诗风沉郁顿挫，深刻反映了社会现实。',
+      relatedPoems: ['《春望》', '《茅屋为秋风所破歌》', '《兵车行》'],
+      themes: ['秋天', '登高', '感慨'],
+      rhetoricalDevices: ['对偶', '夸张', '借景抒情']
+    },
+    '望岳': {
+      title: '望岳',
+      author: '杜甫',
+      dynasty: '唐',
+      content: '岱宗夫如何？齐鲁青未了。造化钟神秀，阴阳割昏晓。荡胸生曾云，决眦入归鸟。会当凌绝顶，一览众山小。',
+      background: '这是杜甫青年时期游历泰山时所作，表现了诗人豪迈的胸怀和远大的志向。',
+      translation: '泰山到底怎么样？在齐鲁大地上，那青翠的山色没有尽头。大自然把神奇秀丽的景色都汇聚于此，山南山北分隔出清晨和黄昏。层层白云，荡涤胸中沟壑；翩翩归鸟，飞入赏景眼圈。定要登上泰山顶峰，俯瞰群山，豪情满怀。',
+      appreciation: '这首诗气势磅礴，格调高昂。诗人通过设问开篇，层层递进地描绘泰山的雄伟壮观。最后两句"会当凌绝顶，一览众山小"更是千古名句，表现了诗人勇攀高峰的豪情壮志。',
+      poetInfo: '杜甫（712-770），字子美，唐代伟大的现实主义诗人。这首诗展现了他青年时期的豪迈气概。',
+      relatedPoems: ['《春望》', '《登高》', '《兵车行》'],
+      themes: ['山水', '志向', '豪情'],
+      rhetoricalDevices: ['设问', '夸张', '对偶']
+    },
+    '相思': {
+      title: '相思',
+      author: '王维',
+      dynasty: '唐',
+      content: '红豆生南国，春来发几枝。愿君多采撷，此物最相思。',
+      background: '这首诗是王维写给友人的，借红豆表达思念之情，后来成为表达爱情的经典诗篇。',
+      translation: '红豆生长在南方，春天来了又生出了多少新枝？希望你多多采摘它，因为这东西最能寄托相思之情。',
+      appreciation: '这首诗语言朴素，情感真挚。诗人借红豆这一意象，含蓄地表达了深沉的思念之情。全诗看似平淡，实则情深意长，体现了王维诗歌"诗中有画"的特点。',
+      poetInfo: '王维（701-761），字摩诘，号摩诘居士，唐代著名诗人、画家，被誉为"诗佛"。其诗风清新淡远，自然脱俗。',
+      relatedPoems: ['《山居秋暝》', '《使至塞上》', '《鹿柴》'],
+      themes: ['爱情', '思念', '友情'],
+      rhetoricalDevices: ['借物抒情', '象征', '白描']
+    },
+    '江雪': {
+      title: '江雪',
+      author: '柳宗元',
+      dynasty: '唐',
+      content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。',
+      background: '这首诗是柳宗元被贬永州期间所作，通过描绘江雪垂钓的景象，表达了自己孤高不屈的精神境界。',
+      translation: '所有的山上都看不到飞鸟的影子，所有的小路上都没有人的踪迹。江面孤舟上有个披蓑戴笠的老翁，独自在寒冷的江面上垂钓。',
+      appreciation: '这首诗以极其简练的笔触勾勒出一幅寒江独钓图。前两句写环境的极度寂静，后两句突出人物的孤独坚毅。全诗意境清冷孤寂，却蕴含着诗人不屈的精神力量。',
+      poetInfo: '柳宗元（773-819），字子厚，唐代文学家、哲学家，"唐宋八大家"之一。其诗风清峻冷峭，意境深远。',
+      relatedPoems: ['《渔翁》', '《溪居》', '《登柳州城楼》'],
+      themes: ['孤独', '坚毅', '自然'],
+      rhetoricalDevices: ['夸张', '对比', '白描']
+    }
+  }
+
+  // 检测诗词赏析请求
+  const poemMatch = question.match(/《(.+?)》|(.+?)（诗词）|赏析(.+?)(?:诗|词)|(.+?)的(?:赏析|分析|背景|翻译)/)
+  let poemTitle = ''
+  
+  if (poemMatch) {
+    poemTitle = poemMatch[1] || poemMatch[2] || poemMatch[3] || poemMatch[4] || ''
+  }
+
+  // 如果检测到具体的诗词赏析请求
+  if (poemTitle && poemAnalysisDB[poemTitle]) {
+    const poem = poemAnalysisDB[poemTitle]
+    return generateDetailedAnalysis(poem, question)
+  }
+
+  // 诗人信息查询
+  const poetMatch = question.match(/(.+?)的(?:介绍|生平|诗风|作品)|诗人(.+?)/)
+  if (poetMatch) {
+    const poetName = poetMatch[1] || poetMatch[2]
+    return generatePoetInfo(poetName, poemAnalysisDB)
+  }
+
+  // 诗词创作指导
+  if (question.includes('创作') || question.includes('写诗')) {
+    return generateEnhancedCreationGuidance(question)
+  }
+
+  // 诗词比较分析
+  if (question.includes('比较') || question.includes('对比')) {
+    return generateEnhancedComparisonAnalysis(question)
+  }
+
+  // 简单的规则匹配生成回复
+  const responses: Record<string, string> = {
+    '春天': '描写春天的经典诗词有很多，比如杜甫的《春望》、孟浩然的《春晓》、白居易的《钱塘湖春行》等。这些诗词通过细腻的笔触描绘了春天的生机与美好。',
+    '李白': '李白是唐代伟大的浪漫主义诗人，代表作有《静夜思》、《望庐山瀑布》、《将进酒》、《蜀道难》等。他的诗风豪放飘逸，想象丰富，语言流转自然。',
+    '意境': '欣赏古诗意境可以从以下几个方面入手：1) 感受诗歌的整体氛围；2) 品味意象的组合与象征；3) 体会诗人的情感表达；4) 结合创作背景理解深层含义。',
+    '唐诗宋词': '唐诗和宋词的主要区别：唐诗以五言、七言为主，格律严谨；宋词则有固定的词牌，句式灵活。唐诗重意境，宋词重抒情。唐诗多写景抒情，宋词多写情抒怀。',
+    '背景': '要了解诗词背景，可以从以下几个方面入手：1) 诗人的生平经历；2) 创作时的社会环境；3) 诗词的创作年代；4) 相关的历史事件。',
+    '格律': '诗词格律主要包括平仄、对仗、押韵等要素。唐诗讲究平仄格律，宋词注重词牌格式。学习格律有助于更好地欣赏和创作诗词。',
+    '意象': '意象是诗词中通过具体物象表达抽象情感的艺术手法。比如月亮象征思念，杨柳代表离别，菊花象征高洁等。'
+  }
+
+  // 关键词匹配
+  for (const [keyword, response] of Object.entries(responses)) {
+    if (question.includes(keyword)) {
+      return response
+    }
+  }
+
+  // 默认回复
+  return `关于"${question}"，我可以为您提供专业的诗词赏析。如果您想了解具体的诗词作品（如《静夜思》、《春晓》、《登高》等），请告诉我诗词名称，我会为您提供详细的背景、翻译、赏析和诗人介绍。您也可以询问诗词创作技巧、格律知识或比较不同诗词的特点。`
+}
+
+// 生成详细的诗词分析
+const generateDetailedAnalysis = (poem: any, question: string): string => {
+  let analysis = `《${poem.title}》 - ${poem.dynasty}·${poem.author}
+
+`
+
+  if (question.includes('背景') || !question.includes('翻译') && !question.includes('赏析')) {
+    analysis += `🏛️ 创作背景：
+${poem.background}
+
+`
+  }
+
+  if (question.includes('翻译') || !question.includes('背景') && !question.includes('赏析')) {
+    analysis += `🔤 现代翻译：
+${poem.translation}
+
+`
+  }
+
+  if (question.includes('赏析') || !question.includes('背景') && !question.includes('翻译')) {
+    analysis += `🎨 艺术赏析：
+${poem.appreciation}
+
+`
+  }
+
+  if (question.includes('诗人') || question.includes('作者')) {
+    analysis += `👤 诗人介绍：
+${poem.poetInfo}
+
+`
+  }
+
+  if (question.includes('相关') || question.includes('类似')) {
+    analysis += `📚 相关作品：
+${poem.relatedPoems.join('、')}
+
+`
+  }
+
+  if (question.includes('修辞') || question.includes('手法')) {
+    analysis += `✍️ 修辞手法：
+${poem.rhetoricalDevices.join('、')}
+
+`
+  }
+
+  if (question.includes('主题') || question.includes('意象')) {
+    analysis += `🎯 主要主题：
+${poem.themes.join('、')}
+
+`
+  }
+
+  // 如果没有特定要求，提供完整分析
+  if (!question.includes('背景') && !question.includes('翻译') && !question.includes('赏析') && 
+      !question.includes('诗人') && !question.includes('相关') && !question.includes('修辞') && !question.includes('主题')) {
+    analysis = `《${poem.title}》 - ${poem.dynasty}·${poem.author}
+
+`
+    analysis += `📖 诗词原文：
+${poem.content}
+
+`
+    analysis += `🏛️ 创作背景：
+${poem.background}
+
+`
+    analysis += `🔤 现代翻译：
+${poem.translation}
+
+`
+    analysis += `🎨 艺术赏析：
+${poem.appreciation}
+
+`
+    analysis += `👤 诗人介绍：
+${poem.poetInfo}
+
+`
+    analysis += `📚 相关作品：
+${poem.relatedPoems.join('、')}
+
+`
+    analysis += `✍️ 修辞手法：
+${poem.rhetoricalDevices.join('、')}
+
+`
+    analysis += `🎯 主要主题：
+${poem.themes.join('、')}`
+  }
+
+  return analysis
+}
+
+// 生成诗人信息
+const generatePoetInfo = (poetName: string, db: Record<string, any>): string => {
+  const poets: Record<string, any> = {
+    '李白': {
+      name: '李白',
+      info: '李白（701-762），字太白，号青莲居士，唐代伟大的浪漫主义诗人，被后人誉为"诗仙"。其诗风豪放飘逸，想象丰富，语言流转自然，善于运用夸张的手法、生动的比喻来表现炽热的情感。',
+      style: '浪漫主义，豪放飘逸，想象奇特',
+      代表作: ['《静夜思》', '《望庐山瀑布》', '《将进酒》', '《蜀道难》'],
+      成就: '开创了唐代诗歌的浪漫主义风格，对后世影响深远',
+      生平: '李白一生漫游天下，诗酒为伴，作品充满浪漫主义色彩'
+    },
+    '杜甫': {
+      name: '杜甫',
+      info: '杜甫（712-770），字子美，自号少陵野老，唐代伟大的现实主义诗人，被后人尊为"诗圣"。其诗风沉郁顿挫，深刻反映了社会现实和人民疾苦。',
+      style: '现实主义，沉郁顿挫，忧国忧民',
+      代表作: ['《春望》', '《登高》', '《茅屋为秋风所破歌》', '《兵车行》'],
+      成就: '唐代现实主义诗歌的代表人物，诗史留名',
+      生平: '杜甫历经安史之乱，作品深刻反映社会现实'
+    },
+    '王维': {
+      name: '王维',
+      info: '王维（701-761），字摩诘，号摩诘居士，唐代著名诗人、画家，被誉为"诗佛"。其诗风清新淡远，自然脱俗，擅长描绘山水田园风光。',
+      style: '山水田园，清新淡远，诗中有画',
+      代表作: ['《相思》', '《山居秋暝》', '《使至塞上》', '《鹿柴》'],
+      成就: '开创了山水田园诗派，诗画双绝',
+      生平: '王维亦官亦隐，诗画兼修，作品充满禅意'
+    },
+    '孟浩然': {
+      name: '孟浩然',
+      info: '孟浩然（689-740），唐代著名的山水田园诗人，与王维并称"王孟"。其诗风清新自然，擅长描绘山水田园风光。',
+      style: '山水田园，清新自然，意境优美',
+      代表作: ['《春晓》', '《过故人庄》', '《宿建德江》'],
+      成就: '唐代山水田园诗派的代表人物',
+      生平: '孟浩然终身不仕，隐居田园，作品清新自然'
+    },
+    '白居易': {
+      name: '白居易',
+      info: '白居易（772-846），字乐天，号香山居士，唐代伟大的现实主义诗人。其诗风通俗易懂，关注民生疾苦。',
+      style: '现实主义，通俗易懂，关注民生',
+      代表作: ['《长恨歌》', '《琵琶行》', '《赋得古原草送别》'],
+      成就: '新乐府运动的倡导者，诗歌通俗化的重要推动者',
+      生平: '白居易官至太子少傅，作品关注社会现实'
+    },
+    '柳宗元': {
+      name: '柳宗元',
+      info: '柳宗元（773-819），字子厚，唐代文学家、哲学家，"唐宋八大家"之一。其诗风清峻冷峭，意境深远。',
+      style: '清峻冷峭，意境深远，哲理深刻',
+      代表作: ['《江雪》', '《渔翁》', '《溪居》'],
+      成就: '古文运动的倡导者，散文成就突出',
+      生平: '柳宗元参与永贞革新失败后被贬，作品充满哲理思考'
+    }
+  }
+
+  const poet = poets[poetName]
+  if (poet) {
+    return `👤 ${poet.name}
+
+📝 诗人介绍：
+${poet.info}
+
+🎨 诗风特点：
+${poet.style}
+
+📚 代表作品：
+${poet.代表作.join('、')}
+
+🏆 主要成就：
+${poet.成就}
+
+📖 生平简介：
+${poet.生平}`
+  }
+
+  return `关于诗人"${poetName}"，我目前的信息库中相关资料有限。您可以询问李白、杜甫、王维、孟浩然、白居易、柳宗元等著名诗人的信息。`
+}
+
+// 生成诗词创作指导（重命名避免冲突）
+const generateEnhancedCreationGuidance = (question: string): string => {
+  return `诗词创作指导：
+
+📝 创作步骤：
+1. 确定主题：选择明确的创作主题（如思乡、爱情、山水等）
+2. 选择体裁：根据内容选择合适的诗体（绝句、律诗、词等）
+3. 构思意象：选取恰当的意象来表达情感
+4. 注重格律：注意平仄、对仗、押韵等格律要求
+5. 锤炼语言：反复推敲字词，力求精炼传神
+
+💡 创作技巧：
+- 善用比喻、拟人等修辞手法
+- 注重意境的营造
+- 保持情感的真实性
+- 学习经典作品的创作手法
+
+🎯 建议：
+多读经典诗词，积累词汇和意象，从模仿开始逐步形成自己的风格。`
+}
+
+// 生成诗词比较分析（重命名避免冲突）
+const generateEnhancedComparisonAnalysis = (question: string): string => {
+  const comparisons: Record<string, string> = {
+    '李白杜甫': `李白和杜甫的比较：
+
+李白（诗仙）- 浪漫主义代表
+- 诗风：豪放飘逸，想象丰富
+- 题材：山水、饮酒、游仙
+- 特点：夸张比喻，语言流转
+
+杜甫（诗圣）- 现实主义代表
+- 诗风：沉郁顿挫，关注现实
+- 题材：社会、民生、历史
+- 特点：严谨格律，深刻思想
+
+总结：李白重个性抒发，杜甫重社会责任`,
+    '唐诗宋词': `唐诗与宋词的比较：
+
+唐诗特点：
+- 形式：以五言、七言为主
+- 格律：严谨规范
+- 内容：重意境营造
+- 代表：李白、杜甫、王维
+
+宋词特点：
+- 形式：按词牌填写
+- 格律：灵活多变
+- 内容：重情感抒发
+- 代表：苏轼、李清照、辛弃疾
+
+差异：唐诗工整典雅，宋词婉约抒情`,
+    '婉约豪放': `婉约派与豪放派的比较：
+
+婉约派（李清照、柳永）
+- 风格：细腻婉约，含蓄深沉
+- 题材：爱情、离别、闺怨
+- 特点：语言精美，情感细腻
+
+豪放派（苏轼、辛弃疾）
+- 风格：豪迈奔放，气势磅礴
+- 题材：壮志、边塞、怀古
+- 特点：意境开阔，情感激昂'`
+  }
+
+  for (const [key, analysis] of Object.entries(comparisons)) {
+    if (question.includes(key)) {
+      return analysis
+    }
+  }
+
+  return '诗词比较分析需要明确比较的对象。您可以询问李白与杜甫的比较、唐诗与宋词的差异、婉约派与豪放派的特点等具体问题。'
+}
+
 onMounted(() => {
-  // 组件挂载后的一些初始化操作
+  loadPopularPoems()
 })
 </script>
 

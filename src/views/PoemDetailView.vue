@@ -150,6 +150,7 @@ const loadPoemDetail = async () => {
     if (result.success && result.data) {
       poem.value = result.data
       loadRelatedPoems()
+      checkFavoriteStatus(poemId)
       
       // 记录用户阅读行为
       await recordUserActivity({
@@ -164,6 +165,16 @@ const loadPoemDetail = async () => {
     console.error('加载诗词详情失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const checkFavoriteStatus = async (poemId: string) => {
+  try {
+    // 从本地存储获取收藏列表
+    const favorites = JSON.parse(localStorage.getItem('poem_favorites') || '[]')
+    isFavorite.value = favorites.includes(poemId)
+  } catch (error) {
+    console.error('检查收藏状态失败:', error)
   }
 }
 
@@ -182,18 +193,22 @@ const toggleFavorite = async () => {
   if (!poem.value) return
   
   try {
+    let favorites = JSON.parse(localStorage.getItem('poem_favorites') || '[]')
+    
     if (isFavorite.value) {
-      const result = await removeFavorite(poem.value.id)
-      if (result.success) {
-        isFavorite.value = false
-        ElMessage.success('已取消收藏')
-      }
+      // 取消收藏
+      favorites = favorites.filter((id: string) => id !== poem.value!.id)
+      localStorage.setItem('poem_favorites', JSON.stringify(favorites))
+      isFavorite.value = false
+      ElMessage.success('已取消收藏')
     } else {
-      const result = await addFavorite(poem.value.id)
-      if (result.success) {
-        isFavorite.value = true
-        ElMessage.success('收藏成功')
+      // 添加收藏
+      if (!favorites.includes(poem.value.id)) {
+        favorites.push(poem.value.id)
+        localStorage.setItem('poem_favorites', JSON.stringify(favorites))
       }
+      isFavorite.value = true
+      ElMessage.success('收藏成功')
     }
   } catch (error) {
     console.error('收藏操作失败:', error)

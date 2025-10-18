@@ -33,6 +33,11 @@ const router = createRouter({
       path: '/poem/:id',
       name: 'poem-detail',
       component: () => import('../views/PoemDetailView.vue')
+    },
+    {
+      path: '/favorites',
+      name: 'favorites',
+      component: () => import('../views/FavoritesView.vue')
     }
   ]
 })

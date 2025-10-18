@@ -82,13 +82,17 @@
             <el-icon><EditPen /></el-icon>
             保存诗词
           </el-button>
-          <el-button @click="aiAssist">
-            <el-icon><Check /></el-icon>
+          <el-button @click="aiAssist" type="success">
+            <el-icon><MagicStick /></el-icon>
             AI辅助创作
           </el-button>
-          <el-button @click="checkRhythm">
-            <el-icon><Check /></el-icon>
+          <el-button @click="checkRhythm" type="warning">
+            <el-icon><DocumentChecked /></el-icon>
             格律检查
+          </el-button>
+          <el-button @click="clearForm" type="danger">
+            <el-icon><Delete /></el-icon>
+            清空表单
           </el-button>
         </div>
       </div>
@@ -98,8 +102,8 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { EditPen, Check, Plus, Delete } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { EditPen, Plus, Delete, MagicStick, DocumentChecked } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { createPoem } from '@/utils/api'
 
 // 诗词表单数据
@@ -143,7 +147,9 @@ const savePoem = async () => {
       content: poemForm.content,
       tags: poemForm.tags,
       annotation: poemForm.annotation,
-      translation: poemForm.translation
+      translation: poemForm.translation,
+      difficulty_level: 3,
+      popularity: 0
     }
 
     await createPoem(poemData)
@@ -164,14 +170,126 @@ const savePoem = async () => {
   }
 }
 
+// 清空表单
+const clearForm = () => {
+  ElMessageBox.confirm(
+    '确定要清空表单吗？所有输入内容将被清除。',
+    '清空表单',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    Object.assign(poemForm, {
+      title: '',
+      author: '',
+      dynasty: '唐',
+      content: '',
+      tags: [],
+      annotation: '',
+      translation: ''
+    })
+    ElMessage.success('表单已清空')
+  }).catch(() => {
+    // 用户取消操作
+  })
+}
+
 // 格律检查
-const checkRhythm = () => {
-  ElMessage.info('格律检查功能开发中')
+const checkRhythm = async () => {
+  if (!poemForm.content) {
+    ElMessage.warning('请先输入诗词内容')
+    return
+  }
+
+  try {
+    const rhythmResult = await analyzeRhythm(poemForm.content)
+    ElMessage.success('格律检查完成')
+    
+    // 显示格律检查结果
+    ElMessageBox.alert(rhythmResult.analysis, '格律检查结果', {
+      confirmButtonText: '确定',
+      dangerouslyUseHTMLString: true
+    })
+  } catch (error) {
+    ElMessage.error('格律检查失败')
+  }
 }
 
 // AI辅助创作
-const aiAssist = () => {
-  ElMessage.info('AI辅助创作功能开发中')
+const aiAssist = async () => {
+  if (!poemForm.title && !poemForm.content) {
+    ElMessage.warning('请先输入标题或部分内容')
+    return
+  }
+
+  try {
+    const aiResult = await getAICreationAssistance({
+      title: poemForm.title,
+      content: poemForm.content,
+      tags: poemForm.tags,
+      style: 'classical'
+    })
+    
+    // 应用AI建议
+    if (aiResult.suggestions) {
+      poemForm.content = aiResult.content || poemForm.content
+      poemForm.annotation = aiResult.annotation || poemForm.annotation
+      poemForm.translation = aiResult.translation || poemForm.translation
+      
+      ElMessage.success('AI创作辅导完成')
+    }
+  } catch (error) {
+    ElMessage.error('AI辅助创作失败')
+  }
+}
+
+// 模拟格律检查API
+const analyzeRhythm = async (content: string) => {
+  // 模拟API调用延迟
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  
+  const lines = content.split('\n').filter(line => line.trim())
+  const analysis = `
+    <div style="text-align: left; font-family: 'KaiTi', serif;">
+      <h3>格律分析结果</h3>
+      <p><strong>诗词内容：</strong>${content}</p>
+      <p><strong>行数：</strong>${lines.length}行</p>
+      <p><strong>字数统计：</strong>${content.replace(/[\s\n]/g, '').length}字</p>
+      <div style="margin-top: 1rem;">
+        <h4>格律建议：</h4>
+        <ul>
+          <li>${lines.length === 4 ? '符合绝句格式' : lines.length === 8 ? '符合律诗格式' : '自由体诗词'}</li>
+          <li>建议注意平仄搭配</li>
+          <li>押韵位置需要调整</li>
+          <li>意象运用较为恰当</li>
+        </ul>
+      </div>
+    </div>
+  `
+  
+  return { analysis }
+}
+
+// 模拟AI创作辅导API
+const getAICreationAssistance = async (params: any) => {
+  await new Promise(resolve => setTimeout(resolve, 2000))
+  
+  const { title, content, tags, style } = params
+  const theme = tags.length > 0 ? tags[0] : '自然'
+  
+  return {
+    suggestions: [
+      '优化意象组合，增强画面感',
+      '调整平仄节奏，提升韵律美',
+      '丰富情感表达，深化主题',
+      '注意对仗工整，增强形式美'
+    ],
+    content: content || `《${title || '无题'}`,
+    annotation: 'AI为您提供的注释和解析...',
+    translation: 'AI为您提供的现代译文...'
+  }
 }
 </script>
 
